@@ -37,7 +37,7 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 to-background">
-      <header className="bg-primary text-primary-foreground py-8">
+      {/* <header className="bg-primary text-primary-foreground py-8">
         <div className="container mx-auto px-4">
           <nav className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">JobPortal</h1>
@@ -69,7 +69,7 @@ export default function Homepage() {
             </Button>
           </div>
         </div>
-      </header>
+      </header> */}
       <main className="container mx-auto px-4 py-12">
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-6">Featured Jobs</h2>
