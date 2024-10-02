@@ -27,20 +27,23 @@ export default function JobDetails({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isApplied, setIsApplied] = useState(false)
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-    // In a real application, fetch job details using the id from params
-    console.log("Job ID:", params.id)
-  }, [status, router, params.id])
+  // useEffect(() => {
+  //   if (status === 'unauthenticated') {
+  //     router.push('/login')
+  //   }
+  //   // In a real application, fetch job details using the id from params
+  //   console.log("Job ID:", params.id)
+  // }, [status, router, params.id])
 
-  if (status === 'loading') {
-    return <div>Loading...</div>
-  }
+  // if (status === 'loading') {
+  //   return <div>Loading...</div>
+  // }
 
   const handleApply = () => {
     // In a real application, send application to the backend
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    }
     setIsApplied(true)
   }
 

@@ -22,15 +22,15 @@ export default function JobListings() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
+  // useEffect(() => {
+  //   if (status === 'unauthenticated') {
+  //     router.push('/login')
+  //   }
+  // }, [status, router])
 
-  if (status === 'loading') {
-    return <div>Loading...</div>
-  }
+  // if (status === 'loading') {
+  //   return <div>Loading...</div>
+  // }
 
   const filteredJobs = jobListings.filter(job => 
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
