@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useSession, signOut } from 'next-auth/react'
 
 export function Navbar() {
-  // const { data: session } = useSession()
+  const { data: session } = useSession()
 
   return (
     <nav className="bg-white shadow-lg">
@@ -25,8 +25,8 @@ export function Navbar() {
               </Link>
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            {/* {session ? (
+          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            {session ? (
               <>
                 <Link href={`/dashboard/${session.user.role}`}>
                   <Button variant="ghost">Dashboard</Button>
@@ -42,7 +42,7 @@ export function Navbar() {
                   <Button>Sign up</Button>
                 </Link>
               </>
-            )} */}
+            )}
           </div>
         </div>
       </div>

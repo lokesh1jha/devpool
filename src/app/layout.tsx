@@ -1,15 +1,15 @@
-
+"use client"
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { Navbar } from '@/components/Navbar'
-// import { SessionProvider } from 'next-auth/react'
+import { SessionProvider } from 'next-auth/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
-  title: 'Job Portal',
-  description: 'Find your dream job or perfect candidate',
-}
+// export const metadata = {
+//   title: 'Job Portal',
+//   description: 'Find your dream job or perfect candidate',
+// }
 
 export default function RootLayout({
   children,
@@ -20,10 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         {/* Can still use SessionProvider here */}
-        {/* <SessionProvider> */}
+        <SessionProvider>
           <Navbar />
           {children}
-        {/* </SessionProvider> */}
+        </SessionProvider>
       </body>
     </html>
   )

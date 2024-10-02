@@ -60,12 +60,14 @@ export function AuthForm({ mode, userType }: AuthFormProps) {
           required
         />
       </div>
+      <div className='flex justify-between'>
       <Button type="submit">
         {mode === 'login' ? 'Log in' : 'Sign up'}
       </Button>
       <Button type="button" variant="outline" onClick={() => signIn('google')}>
         {mode === 'login' ? 'Log in' : 'Sign up'} with Google
       </Button>
+      </div>
     </form>
   )
 }
