@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from 'next/link'
+import Image from 'next/image'
 
 // Mock data for featured jobs
 const featuredJobs = [
@@ -77,7 +78,10 @@ export default function Homepage() {
             <Card className="bg-card">
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
-                  <img src={featuredJobs[currentJobIndex].logo} alt={featuredJobs[currentJobIndex].company} className="w-16 h-16 mr-4 rounded-full" />
+                  <Image
+                    src={featuredJobs[currentJobIndex].logo}
+                    alt={featuredJobs[currentJobIndex].company}
+                    className="w-16 h-16 mr-4 rounded-full" />
                   <div>
                     <h3 className="text-2xl font-semibold mb-1">{featuredJobs[currentJobIndex].title}</h3>
                     <p className="text-muted-foreground text-lg mb-1">{featuredJobs[currentJobIndex].company}</p>
@@ -144,7 +148,7 @@ export default function Homepage() {
             {topCompanies.map(company => (
               <Card key={company.id}>
                 <CardContent className="p-4 flex flex-col items-center justify-center">
-                  <img src={company.logo} alt={company.name} className="w-12 h-12 mb-2" />
+                  <Image src={company.logo} alt={company.name} className="w-12 h-12 mb-2" />
                   <p className="text-center font-semibold">{company.name}</p>
                 </CardContent>
               </Card>

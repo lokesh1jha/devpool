@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useSession, signOut } from 'next-auth/react'
 import { Menu, X, ChevronDown } from 'lucide-react'
+import Image from 'next/image'
+
 
 export function Navbar() {
   const { data: session } = useSession()
@@ -63,7 +65,7 @@ export function Navbar() {
             <div>
               <div className="flex items-center px-5">
                 <div className="flex-shrink-0">
-                  <img className="h-10 w-10 rounded-full" src={session.user.image || '/placeholder.svg?height=40&width=40'} alt="" />
+                  <Image className="h-10 w-10 rounded-full" src={session.user.image || '/placeholder.svg?height=40&width=40'} alt="" />
                 </div>
                 <div className="ml-3">
                   <div className="text-base font-medium">{session.user.name}</div>
