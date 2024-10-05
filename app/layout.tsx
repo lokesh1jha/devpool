@@ -41,7 +41,7 @@ export default function RootLayout({
                   <div className="flex gap-5 items-center font-semibold">
                     <Link href={"/"}>DevPool</Link>
                     <div className="hidden md:ml-6 md:flex md:space-x-8">
-                      <NavLink href="/">For Developers</NavLink>
+                      <NavLink href="/jobseeker">For Developers</NavLink>
                       <NavLink href="/employer">For Employers</NavLink>
                       <NavLink href="/jobs">Browse Jobs</NavLink>
                     </div>

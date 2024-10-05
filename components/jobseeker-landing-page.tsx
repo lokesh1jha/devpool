@@ -65,7 +65,7 @@ export default function JobSeekerHomepage() {
       <header className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <motion.h1 
+            <motion.h1
               className="text-5xl font-bold mb-4"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -73,7 +73,7 @@ export default function JobSeekerHomepage() {
             >
               Unlock Your Potential with Devpool
             </motion.h1>
-            <motion.p 
+            <motion.p
               className="text-xl mb-8"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -86,9 +86,11 @@ export default function JobSeekerHomepage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
-                Get Started
-              </Button>
+              <Link href="/jobs">
+                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
+                  Get Started
+                </Button>
+              </Link>
             </motion.div>
           </div>
           <div className="bg-gray-800 rounded-lg shadow-lg p-6 flex items-center">
@@ -128,7 +130,7 @@ export default function JobSeekerHomepage() {
                       <Image
                         src={featuredJobs[currentJobIndex].logo}
                         alt={featuredJobs[currentJobIndex].company}
-                        className="w-16 h-16 mr-4 rounded-full" 
+                        className="w-16 h-16 mr-4 rounded-full"
                         width={64} height={64}
                       />
                       <div>
@@ -199,8 +201,8 @@ export default function JobSeekerHomepage() {
           <h2 className="text-3xl font-bold mb-8 text-center text-white">Latest Job Opportunities</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {jobListings.map(job => (
-              <Card 
-                key={job.id} 
+              <Card
+                key={job.id}
                 className="bg-gray-800 border border-gray-700 transition-all duration-300 hover:bg-gray-700 cursor-pointer"
                 onClick={() => handleJobClick(job.id)}
               >

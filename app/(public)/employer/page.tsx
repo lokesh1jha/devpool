@@ -77,7 +77,7 @@ export default function EmployerHome() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Link href="/sign-in">
+            <Link href="/protected/dashboard/employer">
               <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">Get Started</Button>
             </Link>
             {/* <Link href="/employer/login">
