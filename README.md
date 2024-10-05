@@ -40,8 +40,8 @@ DevPool is a cutting-edge platform connecting developers with exciting job oppor
 3. Set up environment variables:
    Create a `.env.local` file in the root directory and add your Supabase credentials:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 4. Run the development server:
