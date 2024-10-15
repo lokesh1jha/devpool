@@ -34,10 +34,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen flex flex-col items-center">
-            <div className="flex-1 w-full flex flex-col gap-20 items-center">
+          <main className="min-h-screen flex flex-col">
+            <div className="flex-1 w-full flex flex-col">
               <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-                <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
+                <div className="w-full max-w-7xl flex justify-between items-center p-3 px-5 text-sm">
                   <div className="flex gap-5 items-center font-semibold">
                     <Link href={"/"}>DevPool</Link>
                     <div className="hidden md:ml-6 md:flex md:space-x-8">
@@ -52,7 +52,7 @@ export default function RootLayout({
                   </div>
                 </div>
               </nav>
-              <div className="flex flex-col gap-20 max-w-5xl p-5 w-full">
+              <div className="flex flex-col w-full px-5">
                 {children}
               </div>
 
