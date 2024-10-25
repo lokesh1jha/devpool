@@ -1,29 +1,29 @@
-import { EnvVarWarning } from "@/components/env-var-warning"
-import HeaderAuth from "@/components/header-auth"
-import { ThemeSwitcher } from "@/components/theme-switcher"
-import { hasEnvVars } from "@/utils/supabase/check-env-vars"
-import { GeistSans } from "geist/font/sans"
-import { ThemeProvider } from "next-themes"
-import Link from "next/link"
-import MobileNavbar from "@/components/mobile-navbar"
-import "./globals.css"
-import { Footer } from "@/components/footer"
+import { EnvVarWarning } from "@/components/env-var-warning";
+import HeaderAuth from "@/components/header-auth";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { hasEnvVars } from "@/utils/supabase/check-env-vars";
+import { GeistSans } from "geist/font/sans";
+import { ThemeProvider } from "next-themes";
+import Link from "next/link";
+import MobileNavbar from "@/components/mobile-navbar";
+import "./globals.css";
+import { Footer } from "@/components/footer";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000"
+  : "http://localhost:3000";
 
 export const metadata = {
   metadataBase: new URL(defaultUrl),
   title: "DevPool",
   description: "Find your next tech talent with DevPool",
   keywords: "devpool, job board, job search, tech talent",
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className={GeistSans.className} suppressHydrationWarning>
@@ -52,23 +52,32 @@ export default function RootLayout({
                   </div>
                 </div>
               </nav>
-              <div className="flex flex-col w-full px-5">
-                {children}
-              </div>
+              <div className="flex flex-col w-full px-5">{children}</div>
 
-             <Footer />
+              <div className=" w-full px-5">
+                <Footer />
+              </div>
             </div>
           </main>
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Link href={href} className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+    <Link
+      href={href}
+      className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+    >
       {children}
     </Link>
-  )
+  );
 }

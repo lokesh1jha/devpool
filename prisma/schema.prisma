@@ -8,74 +8,80 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
   password     String
   firstName    String
   lastName     String
   phone        String?
   address      String?
-  resumeUrl    String?  // URL to uploaded resume
-  profilePic   String?  // URL to profile picture
-  bio          String?  // Short bio or summary
-  skills       Skill[]  @relation("UserSkills") // Many-to-many relation with skills
+  resumeUrl    String? // URL to uploaded resume
+  profilePic   String? // URL to profile picture
+  bio          String? // Short bio or summary
+  skills       Skill[]       @relation("UserSkills") // Many-to-many relation with skills
   applications Application[] // Job applications submitted by the user
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Employer {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  password     String
-  companyName  String
-  website      String?
-  phone        String?
-  address      String?
-  logoUrl      String?  // URL to company logo
-  jobs         Job[]    // Jobs posted by the employer
-  payment      Payment? // One-to-one relation for payment (make the employerId unique)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  password    String
+  companyName String
+  website     String?
+  phone       String?
+  address     String?
+  logoUrl     String? // URL to company logo
+  jobs        Job[] // Jobs posted by the employer
+  payment     Payment? // One-to-one relation for payment (make the employerId unique)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Job {
-  id           Int       @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   title        String
   description  String
   location     String
   jobType      JobType
   salary       Float
-  postedAt     DateTime  @default(now())
-  isActive     Boolean   @default(true)
+  postedAt     DateTime      @default(now())
+  isActive     Boolean       @default(true)
   employerId   Int
-  employer     Employer  @relation(fields: [employerId], references: [id])
+  employer     Employer      @relation(fields: [employerId], references: [id])
   applications Application[] // Job applications
 }
 
 model Application {
-  id        Int     @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   jobId     Int
-  job       Job     @relation(fields: [jobId], references: [id])
+  job       Job               @relation(fields: [jobId], references: [id])
   userId    Int
-  user      User    @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
   status    ApplicationStatus @default(PENDING)
-  appliedAt DateTime @default(now())
+  appliedAt DateTime          @default(now())
 }
 
 model Payment {
-  id           Int       @id @default(autoincrement())
-  amount       Float
-  paymentDate  DateTime  @default(now())
-  employerId   Int       @unique // Make employerId unique for a one-to-one relation
-  employer     Employer  @relation(fields: [employerId], references: [id])
+  id            Int           @id @default(autoincrement())
+  amount        Float
+  paymentDate   DateTime      @default(now())
+  employerId    Int           @unique // Make employerId unique for a one-to-one relation
+  employer      Employer      @relation(fields: [employerId], references: [id])
   paymentStatus PaymentStatus @default(PENDING)
 }
 
 model Skill {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
-  users User[]  @relation("UserSkills") // Many-to-many relation, no references needed
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[] @relation("UserSkills") // Many-to-many relation, no references needed
+}
+
+model Newsletter {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
 
 enum JobType {
