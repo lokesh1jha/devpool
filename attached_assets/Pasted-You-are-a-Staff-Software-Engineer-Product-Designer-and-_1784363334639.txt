@@ -1,0 +1,682 @@
+You are a Staff Software Engineer, Product Designer, and SaaS Architect.
+
+We are building a production-quality SaaS product called DevPool.
+
+IMPORTANT
+
+Do NOT try to preserve the current application structure if it is poor.
+
+Treat the existing Next.js project only as a starting template.
+
+You may:
+
+- Delete existing pages
+- Delete unused components
+- Delete unused APIs
+- Delete unused Prisma models
+- Reorganize folders
+- Rename files
+- Create a completely new architecture
+
+The final result should look like a brand new professionally engineered product.
+
+----------------------------------------------------
+PROJECT
+----------------------------------------------------
+
+Product Name
+
+DevPool
+
+Tagline
+
+Modern Hiring OS for Startups
+
+Purpose
+
+A lightweight Applicant Tracking System (ATS) that allows companies to
+
+• Post jobs
+• Receive applications
+• Review resumes
+• Track hiring stages
+• Schedule interviews
+• Send emails
+• Generate offer letters
+
+Initially only one company (internal usage).
+
+Later this will become a SaaS.
+
+Therefore architecture should already support future scaling.
+
+----------------------------------------------------
+TECH STACK
+----------------------------------------------------
+
+Frontend
+
+Next.js 15
+React 19
+TypeScript
+TailwindCSS
+Shadcn UI
+TanStack Query
+
+Backend
+
+Node.js
+Next.js Route Handlers
+Prisma
+
+Database
+
+PostgreSQL
+
+Storage
+
+AWS S3
+
+Authentication
+
+JWT / Better Auth (choose the cleaner architecture)
+
+Email
+
+Resend
+
+PDF
+
+React PDF or PDF-lib
+
+Validation
+
+Zod
+
+Forms
+
+React Hook Form
+
+----------------------------------------------------
+DESIGN PRINCIPLES
+----------------------------------------------------
+
+Modern
+
+Minimal
+
+Fast
+
+Clean
+
+Enterprise quality
+
+Not flashy
+
+Should feel like
+
+Linear
+Notion
+Vercel Dashboard
+Stripe Dashboard
+
+Large whitespace
+
+Excellent typography
+
+Accessible
+
+Dark mode ready
+
+Mobile responsive
+
+----------------------------------------------------
+ARCHITECTURE
+----------------------------------------------------
+
+Follow Feature First Architecture.
+
+Example
+
+/app
+
+/jobs
+
+/dashboard
+
+/settings
+
+/login
+
+/register
+
+/offer
+
+/api
+
+/components
+
+/features
+
+jobs
+
+applications
+
+candidate
+
+interview
+
+offer
+
+email
+
+notifications
+
+company
+
+/lib
+
+/server
+
+/db
+
+/hooks
+
+/services
+
+/types
+
+/utils
+
+No giant folders.
+
+No duplicated code.
+
+Everything reusable.
+
+----------------------------------------------------
+PRODUCT MODULES
+----------------------------------------------------
+
+1 Authentication
+
+Candidate
+
+Register
+
+Login
+
+Forgot Password
+
+Employer
+
+Login
+
+Profile
+
+----------------------------------------------------
+
+2 Candidate Profile
+
+Resume Upload
+
+Skills
+
+Experience
+
+GitHub
+
+LinkedIn
+
+Portfolio
+
+Bio
+
+Current Company
+
+Location
+
+----------------------------------------------------
+
+3 Company Settings
+
+Company Name
+
+Logo
+
+Signature
+
+Offer Letter Prefix
+
+Address
+
+Website
+
+Email
+
+Phone
+
+----------------------------------------------------
+
+4 Jobs
+
+Create
+
+Edit
+
+Delete
+
+Publish
+
+Close
+
+Duplicate
+
+Archive
+
+Job Status
+
+Draft
+
+Published
+
+Closed
+
+----------------------------------------------------
+
+5 Public Job Board
+
+Search
+
+Filter
+
+Job Details
+
+Apply
+
+----------------------------------------------------
+
+6 Candidate Dashboard
+
+My Applications
+
+Application Timeline
+
+Interview Schedule
+
+Notifications
+
+Offer Letters
+
+Profile
+
+----------------------------------------------------
+
+7 HR Dashboard
+
+Statistics
+
+Jobs
+
+Candidates
+
+Interviews
+
+Offers
+
+Emails
+
+Recent Activity
+
+----------------------------------------------------
+
+8 Applications
+
+Each application stores
+
+Candidate
+
+Resume Snapshot
+
+Current Stage
+
+Notes
+
+Timeline
+
+Interview
+
+Offer
+
+Rating
+
+----------------------------------------------------
+
+9 Hiring Stages
+
+Applied
+
+Resume Reviewed
+
+Shortlisted
+
+Interview Scheduled
+
+Interview Completed
+
+Offer Sent
+
+Offer Accepted
+
+Hired
+
+Rejected
+
+Withdrawn
+
+The stage should be configurable later.
+
+----------------------------------------------------
+
+10 Interview
+
+Schedule Interview
+
+Meeting Link
+
+Date
+
+Time
+
+Duration
+
+Interviewer
+
+Notes
+
+Status
+
+----------------------------------------------------
+
+11 Notes
+
+Private HR Notes
+
+Timestamp
+
+Author
+
+Candidate cannot view.
+
+----------------------------------------------------
+
+12 Timeline
+
+Every application should automatically maintain an event timeline.
+
+Example
+
+Applied
+
+↓
+
+Resume Reviewed
+
+↓
+
+Interview Scheduled
+
+↓
+
+Offer Sent
+
+----------------------------------------------------
+
+13 Offer Letter
+
+Template Management
+
+Generate Offer
+
+Preview
+
+Download PDF
+
+Store PDF
+
+Email Candidate
+
+Variables
+
+Candidate Name
+
+Role
+
+Salary
+
+Joining Date
+
+Employment Type
+
+Company Name
+
+Manager
+
+Location
+
+----------------------------------------------------
+
+14 Email
+
+Templates
+
+Application Received
+
+Interview Invite
+
+Rejected
+
+Offer Sent
+
+Custom Email
+
+Store Email History
+
+----------------------------------------------------
+
+15 Notifications
+
+Candidate
+
+Application Submitted
+
+Interview Scheduled
+
+Offer Sent
+
+Rejected
+
+Employer
+
+New Application
+
+Interview Today
+
+Offer Accepted
+
+----------------------------------------------------
+DATABASE
+----------------------------------------------------
+
+Design a clean Prisma schema.
+
+Suggested Models
+
+User
+
+CandidateProfile
+
+Company
+
+Job
+
+Application
+
+ApplicationTimeline
+
+ApplicationNote
+
+Interview
+
+OfferTemplate
+
+OfferLetter
+
+Document
+
+EmailLog
+
+Notification
+
+Newsletter
+
+Skill
+
+Use UUIDs instead of Int IDs.
+
+Add
+
+createdAt
+
+updatedAt
+
+deletedAt (soft delete)
+
+where appropriate.
+
+Use enums whenever possible.
+
+Optimize indexes.
+
+Think like a production SaaS.
+
+----------------------------------------------------
+SECURITY
+----------------------------------------------------
+
+Role Based Access
+
+Candidate
+
+Employer
+
+Admin
+
+Validate every API.
+
+Never trust client data.
+
+Use server actions where appropriate.
+
+Protect uploads.
+
+Protect private routes.
+
+----------------------------------------------------
+UI
+----------------------------------------------------
+
+Dashboard Layout
+
+Sidebar
+
+Top Navigation
+
+Command Palette (future-ready)
+
+Search everywhere
+
+Beautiful tables
+
+Pagination
+
+Loading Skeletons
+
+Empty States
+
+Error States
+
+Confirmation Dialogs
+
+Toast Notifications
+
+----------------------------------------------------
+CODE QUALITY
+----------------------------------------------------
+
+Strict TypeScript
+
+No any
+
+Reusable components
+
+Reusable hooks
+
+Repository pattern where useful
+
+No business logic inside UI
+
+Small components
+
+Readable code
+
+Follow SOLID principles
+
+No duplicated code
+
+No unnecessary abstraction
+
+----------------------------------------------------
+PERFORMANCE
+----------------------------------------------------
+
+Server Components by default.
+
+Client Components only where necessary.
+
+Lazy loading
+
+Optimistic UI where useful.
+
+Pagination.
+
+Caching.
+
+----------------------------------------------------
+DELIVERABLES
+----------------------------------------------------
+
+Build the application incrementally.
+
+Before writing code:
+
+1. Analyze requirements.
+2. Design the folder structure.
+3. Design the database.
+4. Design APIs.
+5. Design UI.
+6. Explain architecture decisions.
+
+Then implement feature by feature.
+
+Do NOT generate hundreds of files at once.
+
+Each feature should be production-ready before moving to the next.
+
+Always keep the project compiling after every step.
+
+Do not leave TODOs unless explicitly requested.
+
+Whenever there is a design decision, choose the option that would scale to 100,000 candidates and thousands of jobs without requiring major architectural changes.
+
+Think like the founding engineer of a successful SaaS product, not like someone building a tutorial project.
