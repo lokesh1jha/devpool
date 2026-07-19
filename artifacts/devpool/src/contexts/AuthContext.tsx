@@ -10,21 +10,23 @@ import { auth, saveToken, clearToken, type AuthUser } from "@/lib/api";
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** Signs in and returns the authenticated user (so callers can redirect by role). */
+  signIn: (email: string, password: string) => Promise<AuthUser>;
+  /** Registers and returns the authenticated user. */
   signUp: (
     name: string,
     email: string,
     password: string,
     role?: "CANDIDATE" | "EMPLOYER",
-  ) => Promise<void>;
+  ) => Promise<AuthUser>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  signIn: async () => {},
-  signUp: async () => {},
+  signIn: async () => { throw new Error("AuthProvider not mounted"); },
+  signUp: async () => { throw new Error("AuthProvider not mounted"); },
   signOut: async () => {},
 });
 
@@ -46,10 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthUser> => {
     const { token, user } = await auth.login({ email, password });
     saveToken(token);
     setUser(user);
+    return user;
   }, []);
 
   const signUp = useCallback(
@@ -58,10 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: string,
       password: string,
       role: "CANDIDATE" | "EMPLOYER" = "CANDIDATE",
-    ) => {
+    ): Promise<AuthUser> => {
       const { token, user } = await auth.register({ name, email, password, role });
       saveToken(token);
       setUser(user);
+      return user;
     },
     [],
   );

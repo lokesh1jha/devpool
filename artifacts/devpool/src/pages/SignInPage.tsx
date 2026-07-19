@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+function dashboardForRole(role: string) {
+  return role === "EMPLOYER" || role === "ADMIN"
+    ? "/dashboard/employer"
+    : "/dashboard/jobseeker";
+}
+
 export default function SignInPage() {
   const { signIn } = useAuth();
   const [, navigate] = useLocation();
@@ -22,8 +28,8 @@ export default function SignInPage() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
     try {
-      await signIn(email, password);
-      navigate("/dashboard");
+      const user = await signIn(email, password);
+      navigate(dashboardForRole(user.role));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sign in failed");
     } finally {
@@ -47,7 +53,14 @@ export default function SignInPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -59,12 +72,17 @@ export default function SignInPage() {
                 Forgot password?
               </Link>
             </div>
-            <Input id="password" name="password" type="password" placeholder="••••••••" required autoComplete="current-password" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+            />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in…" : "Sign in"}

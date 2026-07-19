@@ -26,10 +26,16 @@ export default function SignUpPage() {
     setLoading(true);
 
     const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const name = (form.elements.namedItem("name") as HTMLInputElement).value.trim();
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     const confirm = (form.elements.namedItem("confirm") as HTMLInputElement).value;
+
+    if (name.length < 2) {
+      setError("Name must be at least 2 characters");
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirm) {
       setError("Passwords do not match");
@@ -38,8 +44,8 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp(name, email, password, role);
-      navigate(role === "EMPLOYER" ? "/dashboard/employer" : "/dashboard/jobseeker");
+      const user = await signUp(name, email, password, role);
+      navigate(user.role === "EMPLOYER" ? "/dashboard/employer" : "/dashboard/jobseeker");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sign up failed");
     } finally {
@@ -63,11 +69,26 @@ export default function SignUpPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
-            <Input id="name" name="name" type="text" placeholder="Jane Smith" required autoComplete="name" />
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Jane Smith"
+              required
+              minLength={2}
+              autoComplete="name"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">I am a…</Label>
@@ -83,11 +104,26 @@ export default function SignUpPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" placeholder="Min 8 characters" required minLength={8} autoComplete="new-password" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Min 8 characters"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm">Confirm password</Label>
-            <Input id="confirm" name="confirm" type="password" placeholder="••••••••" required autoComplete="new-password" />
+            <Input
+              id="confirm"
+              name="confirm"
+              type="password"
+              placeholder="••••••••"
+              required
+              autoComplete="new-password"
+            />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

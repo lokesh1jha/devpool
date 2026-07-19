@@ -1,11 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { applications } from "@/lib/api";
+import { applications, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Clock, CheckCircle2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Briefcase, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const STAGE_LABEL: Record<string, string> = {
   APPLIED: "Applied",
@@ -15,8 +27,8 @@ const STAGE_LABEL: Record<string, string> = {
   INTERVIEW_COMPLETED: "Interview completed",
   OFFER_SENT: "Offer sent",
   OFFER_ACCEPTED: "Offer accepted",
-  HIRED: "Hired",
-  REJECTED: "Rejected",
+  HIRED: "Hired 🎉",
+  REJECTED: "Not selected",
   WITHDRAWN: "Withdrawn",
 };
 
@@ -35,20 +47,34 @@ const STAGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "o
 
 export default function JobSeekerDashboard() {
   const { user } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["applications", "mine"],
     queryFn: () => applications.list(),
   });
 
-  const apps = (data?.applications ?? []) as Array<{
-    id: string;
-    stage: string;
-    createdAt: string;
-    job: { id: string; title: string; company: { name: string } };
-  }>;
+  const withdrawMutation = useMutation({
+    mutationFn: (id: string) => applications.withdraw(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["applications", "mine"] });
+      toast({ description: "Application withdrawn." });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err instanceof ApiError ? err.message : "Failed to withdraw.",
+      });
+    },
+  });
 
+  const apps = data?.applications ?? [];
   const active = apps.filter((a) => !["REJECTED", "WITHDRAWN", "HIRED"].includes(a.stage));
   const closed = apps.filter((a) => ["REJECTED", "WITHDRAWN", "HIRED"].includes(a.stage));
+
+  const canWithdraw = (stage: string) =>
+    !["REJECTED", "WITHDRAWN", "HIRED"].includes(stage);
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 space-y-8">
@@ -79,7 +105,22 @@ export default function JobSeekerDashboard() {
         ))}
       </div>
 
-      {/* Applications */}
+      {/* Error state */}
+      {isError && (
+        <Card className="border-destructive/50">
+          <CardContent className="py-8 text-center space-y-2">
+            <AlertCircle className="w-8 h-8 mx-auto text-destructive opacity-70" />
+            <p className="text-sm text-destructive">
+              {error instanceof ApiError ? error.message : "Failed to load applications."}
+            </p>
+            <Button size="sm" variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["applications"] })}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active applications */}
       <div className="space-y-3">
         <h2 className="font-medium">Active applications</h2>
         {isLoading && (
@@ -89,7 +130,7 @@ export default function JobSeekerDashboard() {
             ))}
           </div>
         )}
-        {!isLoading && active.length === 0 && (
+        {!isLoading && !isError && active.length === 0 && (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground text-sm space-y-3">
               <Briefcase className="w-8 h-8 mx-auto opacity-30" />
@@ -107,9 +148,44 @@ export default function JobSeekerDashboard() {
                 <p className="font-medium text-sm truncate">{app.job.title}</p>
                 <p className="text-xs text-muted-foreground">{app.job.company.name}</p>
               </div>
-              <Badge variant={STAGE_VARIANT[app.stage] ?? "secondary"} className="shrink-0">
-                {STAGE_LABEL[app.stage] ?? app.stage}
-              </Badge>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={STAGE_VARIANT[app.stage] ?? "secondary"}>
+                  {STAGE_LABEL[app.stage] ?? app.stage}
+                </Badge>
+                {canWithdraw(app.stage) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                        disabled={withdrawMutation.isPending}
+                      >
+                        Withdraw
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Withdraw application?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You'll be removed from consideration for{" "}
+                          <strong>{app.job.title}</strong> at{" "}
+                          <strong>{app.job.company.name}</strong>. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep application</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive hover:bg-destructive/90"
+                          onClick={() => withdrawMutation.mutate(app.id)}
+                        >
+                          Withdraw
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -125,7 +201,7 @@ export default function JobSeekerDashboard() {
                   <p className="font-medium text-sm truncate">{app.job.title}</p>
                   <p className="text-xs text-muted-foreground">{app.job.company.name}</p>
                 </div>
-                <Badge variant={STAGE_VARIANT[app.stage] ?? "outline"} className="shrink-0">
+                <Badge variant={STAGE_VARIANT[app.stage] ?? "outline"}>
                   {STAGE_LABEL[app.stage] ?? app.stage}
                 </Badge>
               </CardContent>

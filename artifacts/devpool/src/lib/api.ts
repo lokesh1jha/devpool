@@ -61,7 +61,7 @@ export interface AuthUser {
   role: "CANDIDATE" | "EMPLOYER" | "ADMIN";
   emailVerified: boolean;
   candidateProfile?: unknown;
-  company?: unknown;
+  company?: { id: string; name: string } | null;
 }
 
 export const auth = {
@@ -70,10 +70,11 @@ export const auth = {
     email: string;
     password: string;
     role?: "CANDIDATE" | "EMPLOYER";
-  }) => request<{ token: string; user: AuthUser }>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(body),
-  }),
+  }) =>
+    request<{ token: string; user: AuthUser }>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
   login: (body: { email: string; password: string }) =>
     request<{ token: string; user: AuthUser }>("/auth/login", {
@@ -84,7 +85,13 @@ export const auth = {
   me: () => request<{ user: AuthUser }>("/auth/me"),
 
   logout: () =>
-    request<{ message: string }>("/auth/logout", { method: "POST" }),
+    request<void>("/auth/logout", { method: "POST" }),
+
+  forgotPassword: (email: string) =>
+    request<{ message: string }>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
 };
 
 // ─── Jobs ─────────────────────────────────────────────────────────────────────
@@ -95,61 +102,102 @@ export interface Job {
   description: string;
   requirements?: string;
   location?: string;
-  type: string;
+  type: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP" | "REMOTE";
   salaryMin?: number;
   salaryMax?: number;
   salaryCurrency: string;
-  status: string;
+  status: "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
   publishedAt?: string;
+  closedAt?: string;
   createdAt: string;
-  company: { id: string; name: string; logoUrl?: string };
+  company: { id: string; name: string; logoUrl?: string; website?: string };
   _count?: { applications: number };
+}
+
+export interface JobsListResponse {
+  jobs: Job[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
 }
 
 export const jobs = {
   list: (params?: {
+    mine?: boolean;
     status?: string;
     type?: string;
     search?: string;
     page?: number;
     limit?: number;
-  }) => {
+  }): Promise<JobsListResponse> => {
     const qs = params
-      ? "?" + new URLSearchParams(
+      ? "?" +
+        new URLSearchParams(
           Object.fromEntries(
             Object.entries(params)
-              .filter(([, v]) => v !== undefined)
+              .filter(([, v]) => v !== undefined && v !== null)
               .map(([k, v]) => [k, String(v)]),
           ),
         ).toString()
       : "";
-    return request<{
-      jobs: Job[];
-      total: number;
-      page: number;
-      pages: number;
-    }>(`/jobs${qs}`);
+    return request<JobsListResponse>(`/jobs${qs}`);
   },
 
   get: (id: string) => request<{ job: Job }>(`/jobs/${id}`),
 
-  create: (body: Partial<Job>) =>
+  create: (body: {
+    title: string;
+    description: string;
+    requirements?: string;
+    location?: string;
+    type?: Job["type"];
+    salaryMin?: number;
+    salaryMax?: number;
+    salaryCurrency?: string;
+    status?: "DRAFT" | "PUBLISHED";
+  }) =>
     request<{ job: Job }>("/jobs", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  update: (id: string, body: Partial<Job>) =>
+  update: (id: string, body: Partial<Omit<Job, "id" | "createdAt" | "company">>) =>
     request<{ job: Job }>(`/jobs/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
 
   delete: (id: string) =>
-    request<{ message: string }>(`/jobs/${id}`, { method: "DELETE" }),
+    request<void>(`/jobs/${id}`, { method: "DELETE" }),
 };
 
 // ─── Applications ─────────────────────────────────────────────────────────────
+
+export interface ApplicationTimeline {
+  id: string;
+  stage: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface Application {
+  id: string;
+  stage: string;
+  coverLetter?: string;
+  createdAt: string;
+  job: { id: string; title: string; company: { id: string; name: string } };
+  candidate: { id: string; name: string; email: string };
+  timeline: ApplicationTimeline[];
+}
+
+export interface ApplicationsListResponse {
+  applications: Application[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
 
 export const applications = {
   apply: (body: {
@@ -157,21 +205,35 @@ export const applications = {
     coverLetter?: string;
     resumeSnapshot?: string;
   }) =>
-    request<{ application: unknown }>("/applications", {
+    request<{ application: Application }>("/applications", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  list: () => request<{ applications: unknown[] }>("/applications"),
+  list: (params?: { page?: number; limit?: number }) => {
+    const qs = params
+      ? "?" +
+        new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params)
+              .filter(([, v]) => v !== undefined)
+              .map(([k, v]) => [k, String(v)]),
+          ),
+        )
+      : "";
+    return request<ApplicationsListResponse>(`/applications${qs}`);
+  },
 
-  get: (id: string) => request<{ application: unknown }>(`/applications/${id}`),
+  get: (id: string) => request<{ application: Application }>(`/applications/${id}`),
 
-  updateStage: (
-    id: string,
-    body: { stage: string; note?: string },
-  ) =>
-    request<{ application: unknown }>(`/applications/${id}/stage`, {
+  updateStage: (id: string, body: { stage: string; note?: string }) =>
+    request<{ application: Application }>(`/applications/${id}/stage`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    }),
+
+  withdraw: (id: string) =>
+    request<{ application: Application }>(`/applications/${id}/withdraw`, {
+      method: "POST",
     }),
 };

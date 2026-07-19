@@ -1,12 +1,40 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { jobs, applications } from "@/lib/api";
+import { jobs, applications, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Users, TrendingUp, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Briefcase,
+  Users,
+  TrendingUp,
+  Plus,
+  Eye,
+  EyeOff,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useToast } from "@/hooks/use-toast";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -21,22 +49,36 @@ export default function EmployerDashboard() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data: jobsData, isLoading: jobsLoading } = useQuery({
-    queryKey: ["jobs", "employer"],
-    queryFn: () => jobs.list({ status: undefined }),
+  // mine=true → only this employer's jobs across all statuses
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+  } = useQuery({
+    queryKey: ["jobs", "mine"],
+    queryFn: () => jobs.list({ mine: true }),
   });
 
-  const { data: appsData } = useQuery({
+  const {
+    data: appsData,
+    isError: appsError,
+  } = useQuery({
     queryKey: ["applications", "employer"],
     queryFn: () => applications.list(),
   });
 
   const publishMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      jobs.update(id, { status } as never),
+      jobs.update(id, { status: status as "PUBLISHED" | "CLOSED" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast({ description: "Job status updated" });
+      toast({ description: "Job status updated." });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err instanceof ApiError ? err.message : "Failed to update job.",
+      });
     },
   });
 
@@ -44,26 +86,37 @@ export default function EmployerDashboard() {
     mutationFn: (id: string) => jobs.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jobs"] });
-      toast({ description: "Job deleted" });
+      toast({ description: "Job deleted." });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err instanceof ApiError ? err.message : "Failed to delete job.",
+      });
     },
   });
 
   const allJobs = jobsData?.jobs ?? [];
-  const allApps = (appsData?.applications ?? []) as Array<{ stage: string; job: { title: string } }>;
+  const allApps = appsData?.applications ?? [];
 
   const stats = [
     { label: "Total jobs", value: allJobs.length, icon: Briefcase },
-    { label: "Active listings", value: allJobs.filter((j) => j.status === "PUBLISHED").length, icon: TrendingUp },
+    {
+      label: "Active listings",
+      value: allJobs.filter((j) => j.status === "PUBLISHED").length,
+      icon: TrendingUp,
+    },
     { label: "Total applicants", value: allApps.length, icon: Users },
   ];
 
-  // Chart data: apps per job (top 5)
+  // Chart: application count per job (top 6)
   const chartData = allJobs
     .map((j) => ({
       name: j.title.length > 18 ? j.title.slice(0, 18) + "…" : j.title,
-      applicants: allApps.filter((a) => a.job?.title === j.title).length,
+      applicants: allApps.filter((a) => a.job?.id === j.id).length,
     }))
-    .slice(0, 5);
+    .sort((a, b) => b.applicants - a.applicants)
+    .slice(0, 6);
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4 space-y-8">
@@ -72,7 +125,9 @@ export default function EmployerDashboard() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {user?.name?.split(" ")[0]}'s Dashboard
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage your jobs and applications</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage your jobs and applications
+          </p>
         </div>
         <Link href="/post-job">
           <Button size="sm">
@@ -98,7 +153,7 @@ export default function EmployerDashboard() {
       </div>
 
       {/* Chart */}
-      {chartData.length > 0 && (
+      {chartData.some((d) => d.applicants > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Applications per job</CardTitle>
@@ -117,21 +172,44 @@ export default function EmployerDashboard() {
         </Card>
       )}
 
+      {/* Error states */}
+      {(jobsError || appsError) && (
+        <Card className="border-destructive/50">
+          <CardContent className="py-6 text-center space-y-2">
+            <AlertCircle className="w-7 h-7 mx-auto text-destructive opacity-70" />
+            <p className="text-sm text-destructive">
+              Failed to load {jobsError ? "jobs" : "applications"}. Please refresh.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => qc.invalidateQueries({ queryKey: ["jobs", "applications"] })}
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Job listings */}
       <div className="space-y-3">
         <h2 className="font-medium">Your job listings</h2>
         {jobsLoading && (
           <div className="space-y-2">
-            {[1, 2].map((i) => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}
+            {[1, 2].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
           </div>
         )}
-        {!jobsLoading && allJobs.length === 0 && (
+        {!jobsLoading && !jobsError && allJobs.length === 0 && (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground text-sm space-y-3">
               <Briefcase className="w-8 h-8 mx-auto opacity-30" />
               <p>No jobs posted yet.</p>
               <Link href="/post-job">
-                <Button size="sm" variant="outline"><Plus className="w-3.5 h-3.5 mr-1" /> Post first job</Button>
+                <Button size="sm" variant="outline">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Post first job
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -139,7 +217,7 @@ export default function EmployerDashboard() {
         {allJobs.map((job) => (
           <Card key={job.id}>
             <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
-              <div className="space-y-0.5 min-w-0">
+              <div className="space-y-0.5 min-w-0 flex-1">
                 <p className="font-medium text-sm truncate">{job.title}</p>
                 <p className="text-xs text-muted-foreground">
                   {job.location ?? "No location"} · {job.type.replace("_", " ")}
@@ -153,7 +231,7 @@ export default function EmployerDashboard() {
                   size="icon"
                   variant="ghost"
                   className="w-7 h-7"
-                  title={job.status === "PUBLISHED" ? "Close job" : "Publish"}
+                  title={job.status === "PUBLISHED" ? "Close listing" : "Publish"}
                   disabled={publishMutation.isPending}
                   onClick={() =>
                     publishMutation.mutate({
@@ -162,18 +240,45 @@ export default function EmployerDashboard() {
                     })
                   }
                 >
-                  {job.status === "PUBLISHED" ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {job.status === "PUBLISHED" ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )}
                 </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="w-7 h-7 text-destructive hover:text-destructive"
-                  title="Delete"
-                  disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate(job.id)}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+
+                {/* Confirm before delete */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-7 h-7 text-destructive hover:text-destructive"
+                      title="Delete job"
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete "{job.title}"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the listing and hide it from candidates. Existing
+                        applications are preserved in your records.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={() => deleteMutation.mutate(job.id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
