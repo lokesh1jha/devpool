@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "DevPool"
+version = "1.0.0"
+id = "artifacts/devpool"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21233
+
+[services.development]
+run = "pnpm --filter @workspace/devpool run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/devpool", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/devpool/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21233"
+BASE_PATH = "/"
