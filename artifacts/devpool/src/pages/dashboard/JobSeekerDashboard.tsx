@@ -1,104 +1,138 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { applications } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Briefcase, Clock, CheckCircle2 } from "lucide-react";
 
-const appliedJobs = [
-  { id: 1, title: 'Frontend Developer', company: 'Tech Co', status: 'Applied' },
-  { id: 2, title: 'UX Designer', company: 'Design Studio', status: 'Interview Scheduled' },
-  { id: 3, title: 'Product Manager', company: 'Innovate Inc', status: 'Rejected' },
-];
+const STAGE_LABEL: Record<string, string> = {
+  APPLIED: "Applied",
+  RESUME_REVIEWED: "Under review",
+  SHORTLISTED: "Shortlisted",
+  INTERVIEW_SCHEDULED: "Interview scheduled",
+  INTERVIEW_COMPLETED: "Interview completed",
+  OFFER_SENT: "Offer sent",
+  OFFER_ACCEPTED: "Offer accepted",
+  HIRED: "Hired",
+  REJECTED: "Rejected",
+  WITHDRAWN: "Withdrawn",
+};
 
-const savedJobs = [
-  { id: 4, title: 'Backend Developer', company: 'Server Solutions' },
-  { id: 5, title: 'Data Analyst', company: 'Data Insights' },
-];
+const STAGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  APPLIED: "secondary",
+  RESUME_REVIEWED: "secondary",
+  SHORTLISTED: "default",
+  INTERVIEW_SCHEDULED: "default",
+  INTERVIEW_COMPLETED: "default",
+  OFFER_SENT: "default",
+  OFFER_ACCEPTED: "default",
+  HIRED: "default",
+  REJECTED: "destructive",
+  WITHDRAWN: "outline",
+};
 
 export default function JobSeekerDashboard() {
-  const [appliedCount, setAppliedCount] = useState(0);
-  const [savedCount, setSavedCount] = useState(0);
+  const { user } = useAuth();
+  const { data, isLoading } = useQuery({
+    queryKey: ["applications", "mine"],
+    queryFn: () => applications.list(),
+  });
 
-  useEffect(() => {
-    setAppliedCount(appliedJobs.length);
-    setSavedCount(savedJobs.length);
-  }, []);
+  const apps = (data?.applications ?? []) as Array<{
+    id: string;
+    stage: string;
+    createdAt: string;
+    job: { id: string; title: string; company: { name: string } };
+  }>;
+
+  const active = apps.filter((a) => !["REJECTED", "WITHDRAWN", "HIRED"].includes(a.stage));
+  const closed = apps.filter((a) => ["REJECTED", "WITHDRAWN", "HIRED"].includes(a.stage));
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Job Seeker Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Applied Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{appliedCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saved Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{savedCount}</div>
-          </CardContent>
-        </Card>
+    <div className="max-w-4xl mx-auto py-10 px-4 space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back, {user?.name?.split(" ")[0]}
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">Track your applications and interviews</p>
       </div>
 
-      <Tabs defaultValue="applied" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="applied">Applied Jobs</TabsTrigger>
-          <TabsTrigger value="saved">Saved Jobs</TabsTrigger>
-        </TabsList>
-        <TabsContent value="applied" className="space-y-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appliedJobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
-                  <TableCell>{job.company}</TableCell>
-                  <TableCell>{job.status}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-        <TabsContent value="saved" className="space-y-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {savedJobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
-                  <TableCell>{job.company}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm" className="mr-2">View</Button>
-                    <Button variant="outline" size="sm">Apply</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-      </Tabs>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Total applied", value: apps.length, icon: Briefcase },
+          { label: "In progress", value: active.length, icon: Clock },
+          { label: "Completed", value: closed.length, icon: CheckCircle2 },
+        ].map(({ label, value, icon: Icon }) => (
+          <Card key={label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold">{value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Applications */}
+      <div className="space-y-3">
+        <h2 className="font-medium">Active applications</h2>
+        {isLoading && (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        )}
+        {!isLoading && active.length === 0 && (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground text-sm space-y-3">
+              <Briefcase className="w-8 h-8 mx-auto opacity-30" />
+              <p>No active applications yet.</p>
+              <Link href="/jobs">
+                <Button size="sm" variant="outline">Browse jobs</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+        {active.map((app) => (
+          <Card key={app.id}>
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div className="space-y-0.5 min-w-0">
+                <p className="font-medium text-sm truncate">{app.job.title}</p>
+                <p className="text-xs text-muted-foreground">{app.job.company.name}</p>
+              </div>
+              <Badge variant={STAGE_VARIANT[app.stage] ?? "secondary"} className="shrink-0">
+                {STAGE_LABEL[app.stage] ?? app.stage}
+              </Badge>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {closed.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="font-medium text-muted-foreground">Past applications</h2>
+          {closed.map((app) => (
+            <Card key={app.id} className="opacity-60">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="space-y-0.5 min-w-0">
+                  <p className="font-medium text-sm truncate">{app.job.title}</p>
+                  <p className="text-xs text-muted-foreground">{app.job.company.name}</p>
+                </div>
+                <Badge variant={STAGE_VARIANT[app.stage] ?? "outline"} className="shrink-0">
+                  {STAGE_LABEL[app.stage] ?? app.stage}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NEON_DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  CANDIDATE
+  EMPLOYER
+  ADMIN
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum ApplicationStage {
+  APPLIED
+  RESUME_REVIEWED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  OFFER_SENT
+  OFFER_ACCEPTED
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum OfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum NotificationType {
+  APPLICATION_SUBMITTED
+  INTERVIEW_SCHEDULED
+  OFFER_SENT
+  REJECTED
+  NEW_APPLICATION
+  INTERVIEW_TODAY
+  OFFER_ACCEPTED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          UserRole  @default(CANDIDATE)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  candidateProfile CandidateProfile?
+  company          Company?
+  applications     Application[]
+  notes            ApplicationNote[]
+  interviews       Interview[]       @relation("Interviewer")
+  notifications    Notification[]
+  emailLogs        EmailLog[]        @relation("SentBy")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model CandidateProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  bio            String?
+  location       String?
+  currentCompany String?
+  resumeUrl      String?
+  portfolioUrl   String?
+  githubUrl      String?
+  linkedinUrl    String?
+  skills         String[]
+  experience     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_profiles")
+}
+
+model Company {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  name              String
+  logoUrl           String?
+  website           String?
+  email             String?
+  phone             String?
+  address           String?
+  signature         String?
+  offerLetterPrefix String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs Job[]
+
+  @@map("companies")
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  companyId       String
+  title           String
+  description     String
+  requirements    String?
+  location        String?
+  type            JobType   @default(FULL_TIME)
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String    @default("USD")
+  status          JobStatus @default(DRAFT)
+  publishedAt     DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  applications Application[]
+
+  @@index([status])
+  @@index([companyId])
+  @@map("jobs")
+}
+
+model Application {
+  id             String           @id @default(uuid())
+  jobId          String
+  candidateId    String
+  resumeSnapshot String?
+  coverLetter    String?
+  stage          ApplicationStage @default(APPLIED)
+  rating         Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  job       Job                   @relation(fields: [jobId], references: [id])
+  candidate User                  @relation(fields: [candidateId], references: [id])
+  timeline  ApplicationTimeline[]
+  notes     ApplicationNote[]
+  interviews Interview[]
+  offers    OfferLetter[]
+
+  @@unique([jobId, candidateId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@index([stage])
+  @@map("applications")
+}
+
+model ApplicationTimeline {
+  id            String           @id @default(uuid())
+  applicationId String
+  stage         ApplicationStage
+  note          String?
+  createdAt     DateTime         @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_timelines")
+}
+
+model ApplicationNote {
+  id            String   @id @default(uuid())
+  applicationId String
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author      User        @relation(fields: [authorId], references: [id])
+
+  @@index([applicationId])
+  @@map("application_notes")
+}
+
+model Interview {
+  id            String          @id @default(uuid())
+  applicationId String
+  interviewerId String
+  scheduledAt   DateTime
+  durationMins  Int             @default(60)
+  meetingLink   String?
+  notes         String?
+  status        InterviewStatus @default(SCHEDULED)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interviewer User        @relation("Interviewer", fields: [interviewerId], references: [id])
+
+  @@index([applicationId])
+  @@index([scheduledAt])
+  @@map("interviews")
+}
+
+model OfferTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  content   String
+  variables Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  offerLetters OfferLetter[]
+
+  @@map("offer_templates")
+}
+
+model OfferLetter {
+  id            String      @id @default(uuid())
+  applicationId String
+  templateId    String?
+  content       String
+  pdfUrl        String?
+  status        OfferStatus @default(DRAFT)
+  sentAt        DateTime?
+  respondedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  application Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template    OfferTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([applicationId])
+  @@map("offer_letters")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  url       String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("documents")
+}
+
+model EmailLog {
+  id            String   @id @default(uuid())
+  sentById      String?
+  toEmail       String
+  subject       String
+  body          String
+  applicationId String?
+  createdAt     DateTime @default(now())
+
+  sentBy User? @relation("SentBy", fields: [sentById], references: [id])
+
+  @@index([applicationId])
+  @@map("email_logs")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model Newsletter {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("newsletters")
+}

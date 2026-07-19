@@ -1,53 +1,79 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, hasEnvVars } from '@/lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { auth, saveToken, clearToken, type AuthUser } from "@/lib/api";
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    role?: "CANDIDATE" | "EMPLOYER",
+  ) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
-  loading: false,
+  loading: true,
+  signIn: async () => {},
+  signUp: async () => {},
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(hasEnvVars);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Re-hydrate from token on mount
   useEffect(() => {
-    if (!hasEnvVars) return;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = localStorage.getItem("dp_token");
+    if (!token) {
       setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+      return;
+    }
+    auth
+      .me()
+      .then(({ user }) => setUser(user))
+      .catch(() => clearToken())
+      .finally(() => setLoading(false));
   }, []);
 
-  const signOut = async () => {
-    if (!hasEnvVars) return;
-    await supabase.auth.signOut();
-  };
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { token, user } = await auth.login({ email, password });
+    saveToken(token);
+    setUser(user);
+  }, []);
+
+  const signUp = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      role: "CANDIDATE" | "EMPLOYER" = "CANDIDATE",
+    ) => {
+      const { token, user } = await auth.register({ name, email, password, role });
+      saveToken(token);
+      setUser(user);
+    },
+    [],
+  );
+
+  const signOut = useCallback(async () => {
+    await auth.logout().catch(() => {});
+    clearToken();
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

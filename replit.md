@@ -1,45 +1,59 @@
-# [Project name]
+# DevPool — Modern Job Board & ATS
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A full-stack job board and applicant tracking system built as a pnpm monorepo on Replit.
 
-## Run & Operate
+## Architecture
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+### Monorepo layout
+```
+artifacts/
+  devpool/       # React + Vite frontend  (port 21233, path /)
+  api-server/    # Express backend API    (port 8080,  path /api)
+```
 
-## Stack
+### Stack
+- **Frontend**: React 18, Vite 7, Tailwind CSS v4, shadcn/ui, TanStack Query, wouter
+- **Backend**: Express, Prisma ORM, Neon PostgreSQL
+- **Auth**: JWT (`jsonwebtoken`) + `bcryptjs`. Token stored in `localStorage` as `dp_token`, sent as `Authorization: Bearer <token>`.
+- **Database**: Prisma schema at `artifacts/api-server/prisma/schema.prisma`, connected to Neon via `NEON_DATABASE_URL` secret.
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+### API proxy
+In dev the Vite server proxies `/api/*` → `http://localhost:8080` (configured in `artifacts/devpool/vite.config.ts`). The frontend's `src/lib/api.ts` always uses relative `/api/…` paths so it works in both dev and production.
 
-## Where things live
+## Key files
+| File | Purpose |
+|---|---|
+| `artifacts/devpool/src/lib/api.ts` | Typed fetch client — `auth`, `jobs`, `applications` namespaces |
+| `artifacts/devpool/src/contexts/AuthContext.tsx` | JWT auth context — `signIn`, `signUp`, `signOut`, `user` |
+| `artifacts/devpool/src/components/auth/ProtectedRoute.tsx` | Route guard with optional `roles` prop |
+| `artifacts/api-server/src/routes/auth.ts` | POST /api/auth/register, login, GET /me, POST /logout |
+| `artifacts/api-server/src/routes/jobs.ts` | Full CRUD for jobs (employer-scoped writes) |
+| `artifacts/api-server/src/routes/applications.ts` | Apply, list (role-filtered), stage update |
+| `artifacts/api-server/src/lib/prisma.ts` | Prisma client singleton |
+| `artifacts/api-server/src/lib/jwt.ts` | `signToken` / `verifyToken` |
+| `artifacts/api-server/src/middlewares/auth.ts` | `authenticate` + `requireRole(...roles)` |
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## User roles
+- `CANDIDATE` — browse jobs, apply, track applications
+- `EMPLOYER` — post jobs, manage listings, view applicants
+- `ADMIN` — all employer permissions + admin access
 
-## Architecture decisions
+## Secrets required
+| Secret | Purpose |
+|---|---|
+| `NEON_DATABASE_URL` | Neon PostgreSQL connection string |
+| `SESSION_SECRET` | JWT signing secret |
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+## Running locally
+Both workflows start automatically:
+- **DevPool web**: `pnpm --filter @workspace/devpool run dev`
+- **API Server**: `pnpm --filter @workspace/api-server run dev` (runs `prisma generate` → build → start)
 
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+## Schema migrations
+To push schema changes to the database:
+```
+cd artifacts/api-server && pnpm exec prisma db push --schema=./prisma/schema.prisma
+```
 
 ## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Keep Supabase completely removed — auth and data use JWT + Prisma + Neon only.

@@ -1,110 +1,184 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { jobs, applications } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Briefcase, Users, TrendingUp, Plus, Eye, EyeOff, Trash2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
-const postedJobs = [
-  { id: 1, title: 'Senior React Developer', applicants: 12, status: 'Active' },
-  { id: 2, title: 'UX Designer', applicants: 8, status: 'Active' },
-  { id: 3, title: 'Product Manager', applicants: 15, status: 'Closed' },
-];
-
-const applicantData = [
-  { name: 'Senior React Dev', applicants: 12 },
-  { name: 'UX Designer', applicants: 8 },
-  { name: 'Product Manager', applicants: 15 },
-];
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  DRAFT: "outline",
+  PUBLISHED: "default",
+  CLOSED: "secondary",
+  ARCHIVED: "destructive",
+};
 
 export default function EmployerDashboard() {
-  const [activeJobs, setActiveJobs] = useState(0);
-  const [totalApplicants, setTotalApplicants] = useState(0);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    const active = postedJobs.filter((job) => job.status === 'Active').length;
-    const applicants = postedJobs.reduce((sum, job) => sum + job.applicants, 0);
-    setActiveJobs(active);
-    setTotalApplicants(applicants);
-  }, []);
+  const { data: jobsData, isLoading: jobsLoading } = useQuery({
+    queryKey: ["jobs", "employer"],
+    queryFn: () => jobs.list({ status: undefined }),
+  });
+
+  const { data: appsData } = useQuery({
+    queryKey: ["applications", "employer"],
+    queryFn: () => applications.list(),
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      jobs.update(id, { status } as never),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      toast({ description: "Job status updated" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => jobs.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      toast({ description: "Job deleted" });
+    },
+  });
+
+  const allJobs = jobsData?.jobs ?? [];
+  const allApps = (appsData?.applications ?? []) as Array<{ stage: string; job: { title: string } }>;
+
+  const stats = [
+    { label: "Total jobs", value: allJobs.length, icon: Briefcase },
+    { label: "Active listings", value: allJobs.filter((j) => j.status === "PUBLISHED").length, icon: TrendingUp },
+    { label: "Total applicants", value: allApps.length, icon: Users },
+  ];
+
+  // Chart data: apps per job (top 5)
+  const chartData = allJobs
+    .map((j) => ({
+      name: j.title.length > 18 ? j.title.slice(0, 18) + "…" : j.title,
+      applicants: allApps.filter((a) => a.job?.title === j.title).length,
+    }))
+    .slice(0, 5);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Employer Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeJobs}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Applicants</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalApplicants}</div>
-          </CardContent>
-        </Card>
+    <div className="max-w-5xl mx-auto py-10 px-4 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {user?.name?.split(" ")[0]}'s Dashboard
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage your jobs and applications</p>
+        </div>
+        <Link href="/post-job">
+          <Button size="sm">
+            <Plus className="w-4 h-4 mr-1" /> Post a job
+          </Button>
+        </Link>
       </div>
 
-      <Tabs defaultValue="jobs" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="jobs">Posted Jobs</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="jobs" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Posted Jobs</h2>
-            <Link href="/protected/post-job">
-              <Button>Post New Job</Button>
-            </Link>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Job Title</TableHead>
-                <TableHead>Applicants</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {postedJobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-medium">{job.title}</TableCell>
-                  <TableCell>{job.applicants}</TableCell>
-                  <TableCell>{job.status}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Application Analytics</CardTitle>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {stats.map(({ label, value, icon: Icon }) => (
+          <Card key={label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="pl-2">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={applicantData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="applicants" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent>
+              <p className="text-2xl font-semibold">{value}</p>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        ))}
+      </div>
+
+      {/* Chart */}
+      {chartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Applications per job</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} barSize={24}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="applicants" className="fill-primary" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Job listings */}
+      <div className="space-y-3">
+        <h2 className="font-medium">Your job listings</h2>
+        {jobsLoading && (
+          <div className="space-y-2">
+            {[1, 2].map((i) => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}
+          </div>
+        )}
+        {!jobsLoading && allJobs.length === 0 && (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground text-sm space-y-3">
+              <Briefcase className="w-8 h-8 mx-auto opacity-30" />
+              <p>No jobs posted yet.</p>
+              <Link href="/post-job">
+                <Button size="sm" variant="outline"><Plus className="w-3.5 h-3.5 mr-1" /> Post first job</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+        {allJobs.map((job) => (
+          <Card key={job.id}>
+            <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="space-y-0.5 min-w-0">
+                <p className="font-medium text-sm truncate">{job.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {job.location ?? "No location"} · {job.type.replace("_", " ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={STATUS_VARIANT[job.status] ?? "secondary"}>
+                  {job.status}
+                </Badge>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="w-7 h-7"
+                  title={job.status === "PUBLISHED" ? "Close job" : "Publish"}
+                  disabled={publishMutation.isPending}
+                  onClick={() =>
+                    publishMutation.mutate({
+                      id: job.id,
+                      status: job.status === "PUBLISHED" ? "CLOSED" : "PUBLISHED",
+                    })
+                  }
+                >
+                  {job.status === "PUBLISHED" ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="w-7 h-7 text-destructive hover:text-destructive"
+                  title="Delete"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(job.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

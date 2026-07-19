@@ -1,0 +1,1 @@
+- [DevPool stack decisions](devpool-stack.md) — JWT+Prisma+Neon replaces Supabase; proxy config and port layout documented.

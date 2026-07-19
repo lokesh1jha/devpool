@@ -1,16 +1,24 @@
-import { Link } from 'wouter';
-import { useAuth } from '@/contexts/AuthContext';
-import { hasEnvVars } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import MobileNavbar from './MobileNavbar';
-import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Briefcase, ChevronDown } from "lucide-react";
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const [location] = useLocation();
+  const active = location === href || (href !== "/" && location.startsWith(href));
   return (
     <Link
       href={href}
-      className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+      className={`text-sm transition-colors hover:text-foreground ${active ? "text-foreground font-medium" : "text-muted-foreground"}`}
     >
       {children}
     </Link>
@@ -20,53 +28,74 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 export function Navbar() {
   const { user, signOut } = useAuth();
 
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
+
+  const dashboardHref =
+    user?.role === "EMPLOYER" || user?.role === "ADMIN"
+      ? "/dashboard/employer"
+      : "/dashboard/jobseeker";
+
   return (
-    <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16 relative">
-      <div className="w-full max-w-7xl flex justify-between items-center p-3 px-5 text-sm">
-        <div className="flex gap-5 items-center font-semibold">
-          <Link href="/">DevPool</Link>
-          <div className="hidden md:ml-6 md:flex md:space-x-8">
-            <NavLink href="/jobseeker">For Developers</NavLink>
-            <NavLink href="/employer">For Employers</NavLink>
-            <NavLink href="/jobs">Browse Jobs</NavLink>
-          </div>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="max-w-7xl mx-auto flex h-14 items-center justify-between px-4 sm:px-6">
+        {/* Brand */}
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-sm">
+            <Briefcase className="w-4 h-4" />
+            DevPool
+          </Link>
+          <nav className="hidden md:flex items-center gap-5">
+            <NavLink href="/jobs">Jobs</NavLink>
+            {user && <NavLink href={dashboardHref}>Dashboard</NavLink>}
+          </nav>
         </div>
-        <div className="flex items-center gap-4">
-          {!hasEnvVars ? (
-            <div className="flex gap-4 items-center">
-              <Badge variant="default" className="font-normal pointer-events-none">
-                Please update .env.local file with anon key and url
-              </Badge>
-              <div className="flex gap-2">
-                <Button asChild size="sm" variant="outline" disabled className="opacity-75 cursor-none pointer-events-none">
-                  <Link href="/sign-in">Sign in</Link>
+
+        {/* Right side */}
+        <div className="flex items-center gap-3">
+          <ThemeSwitcher />
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 h-8">
+                  <Avatar className="w-6 h-6">
+                    <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline text-sm">{user.name}</span>
+                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
                 </Button>
-                <Button asChild size="sm" variant="default" disabled className="opacity-75 cursor-none pointer-events-none">
-                  <Link href="/sign-up">Sign up</Link>
-                </Button>
-              </div>
-            </div>
-          ) : user ? (
-            <div className="flex items-center gap-4">
-              Hey, {user.email}!
-              <Button type="button" variant="outline" onClick={signOut}>
-                Sign out
-              </Button>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href={dashboardHref}>Dashboard</Link>
+                </DropdownMenuItem>
+                {(user.role === "EMPLOYER" || user.role === "ADMIN") && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/post-job">Post a job</Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => signOut()}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <div className="flex gap-2">
-              <Button asChild size="sm" variant="outline">
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
                 <Link href="/sign-in">Sign in</Link>
               </Button>
-              <Button asChild size="sm" variant="default">
+              <Button asChild size="sm">
                 <Link href="/sign-up">Sign up</Link>
               </Button>
             </div>
           )}
-          <MobileNavbar />
-          <ThemeSwitcher />
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
